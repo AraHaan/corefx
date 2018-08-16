@@ -452,6 +452,71 @@ namespace System.Drawing
 
         public static Color FromArgb(int red, int green, int blue) => FromArgb(255, red, green, blue);
 
+        /// <summary>
+        /// Creates a new <see cref="Color"/> from the input HSL values.
+        /// </summary>
+        /// <param name="h">The hue to use for the new color.</param>
+        /// <param name="s">The Saturation for the new color.</param>
+        /// <param name="l">The Lumosity of the new color.</param>
+        /// <returns>A new <see cref="Color"/> with the Color that the HSL values represent.</returns>
+        public static Color FromHsl(double h, double s, double l) => FromHsl(h, s, l, 255);
+
+        /// <summary>
+        /// Creates a new <see cref="Color"/> from the input HSL values.
+        /// </summary>
+        /// <param name="h">The hue to use for the new color.</param>
+        /// <param name="s">The Saturation for the new color.</param>
+        /// <param name="l">The Lumosity of the new color.</param>
+        /// <param name="alpha">The alpha  value of the new color between 0 and 255.</param>
+        /// <returns>A new <see cref="Color"/> with the Color that the HSL values represent.</returns>
+        public static Color FromHsl(double h, double s, double l, int alpha)
+        {
+            if (h > 1.0)
+            {
+                // do the divide, we need this function to work
+                // as well when the user inputs the raw hue value from GetHue().
+                h = h / 360.0;
+            }
+            double r = 0, g = 0, b = 0;
+            if (l == 0)
+            {
+                r = g = b = 0;
+            }
+            else
+            {
+                if (s == 0)
+                {
+                    r = g = b = l;
+                }
+                else
+                {
+                    var temp2 = ((l <= 0.5) ? l * (1.0 + s) : l + s - (l * s));
+                    var temp1 = (2.0 * l) - temp2;
+                    var t3 = new double[] { h + (1.0 / 3.0), h, h - (1.0 / 3.0) };
+                    var clr = new double[] { 0, 0, 0 };
+                    for (var i = 0; i < 3; i++)
+                    {
+                        if (t3[i] < 0)
+                        {
+                            t3[i] += 1.0;
+                        }
+                        if (t3[i] > 1)
+                        {
+                            t3[i] -= 1.0;
+                        }
+                        clr[i] = 6.0 * t3[i] < 1.0
+                            ? temp1 + ((temp2 - temp1) * t3[i] * 6.0)
+                            : 2.0 * t3[i] < 1.0 ? temp2 : 3.0 * t3[i] < 2.0
+                            ? temp1 + ((temp2 - temp1) * ((2.0 / 3.0) - t3[i]) * 6.0) : temp1;
+                    }
+                    r = clr[0];
+                    g = clr[1];
+                    b = clr[2];
+                }
+            }
+            return FromArgb(alpha, (int)(255 * r), (int)(255 * g), (int)(255 * b));
+        }
+
         public static Color FromKnownColor(KnownColor color) =>
             color <= 0 || color > KnownColor.MenuHighlight ? FromName(color.ToString()) : new Color(color);
 
