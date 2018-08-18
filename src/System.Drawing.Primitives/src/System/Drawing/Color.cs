@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics.Hashing;
@@ -455,66 +456,62 @@ namespace System.Drawing
         /// <summary>
         /// Creates a new <see cref="Color"/> from the input HSL values.
         /// </summary>
-        /// <param name="h">The hue to use for the new color.</param>
-        /// <param name="s">The Saturation for the new color.</param>
-        /// <param name="l">The Lumosity of the new color.</param>
+        /// <param name="hue">The hue to use for the new color.</param>
+        /// <param name="saturation">The Saturation to use for the new color.</param>
+        /// <param name="lumosity">The Lumosity to use for the new color.</param>
         /// <returns>A new <see cref="Color"/> with the Color that the HSL values represent.</returns>
-        public static Color FromHsl(double h, double s, double l) => FromHsl(h, s, l, 255);
+        public static Color FromHsl(float hue, float saturation, float lumosity) =>
+            FromHsl(hue, saturation, lumosity, 255);
 
         /// <summary>
         /// Creates a new <see cref="Color"/> from the input HSL values.
         /// </summary>
-        /// <param name="h">The hue to use for the new color.</param>
-        /// <param name="s">The Saturation for the new color.</param>
-        /// <param name="l">The Lumosity of the new color.</param>
+        /// <param name="hue">The hue to use for the new color.</param>
+        /// <param name="saturation">The Saturation for the new color.</param>
+        /// <param name="lumosity">The Lumosity of the new color.</param>
         /// <param name="alpha">The alpha  value of the new color between 0 and 255.</param>
         /// <returns>A new <see cref="Color"/> with the Color that the HSL values represent.</returns>
-        public static Color FromHsl(double h, double s, double l, int alpha)
+        public static Color FromHsl(float hue, float saturation, float lumosity, int alpha)
         {
-            if (h > 1.0)
+            var chroma = (1 - MathF.Abs((2 * lumosity) - 1)) * saturation;
+            var hue2 = hue / 60;
+            var x = chroma * (1 - MathF.Abs((hue2 % 2) - 1));
+            var rgb = new float[3];
+            if (hue2 < 1)
             {
-                // do the divide, we need this function to work
-                // as well when the user inputs the raw hue value from GetHue().
-                h = h / 360.0;
+                rgb[0] = chroma;
+                rgb[1] = x;
             }
-            double r = 0, g = 0, b = 0;
-            if (l == 0)
+            else if (hue2 < 2)
             {
-                r = g = b = 0;
+                rgb[0] = x;
+                rgb[1] = chroma;
             }
-            else
+            else if (hue2 < 3)
             {
-                if (s == 0)
-                {
-                    r = g = b = l;
-                }
-                else
-                {
-                    var temp2 = ((l <= 0.5) ? l * (1.0 + s) : l + s - (l * s));
-                    var temp1 = (2.0 * l) - temp2;
-                    var t3 = new double[] { h + (1.0 / 3.0), h, h - (1.0 / 3.0) };
-                    var clr = new double[] { 0, 0, 0 };
-                    for (var i = 0; i < 3; i++)
-                    {
-                        if (t3[i] < 0)
-                        {
-                            t3[i] += 1.0;
-                        }
-                        if (t3[i] > 1)
-                        {
-                            t3[i] -= 1.0;
-                        }
-                        clr[i] = 6.0 * t3[i] < 1.0
-                            ? temp1 + ((temp2 - temp1) * t3[i] * 6.0)
-                            : 2.0 * t3[i] < 1.0 ? temp2 : 3.0 * t3[i] < 2.0
-                            ? temp1 + ((temp2 - temp1) * ((2.0 / 3.0) - t3[i]) * 6.0) : temp1;
-                    }
-                    r = clr[0];
-                    g = clr[1];
-                    b = clr[2];
-                }
+                rgb[1] = chroma;
+                rgb[2] = x;
             }
-            return FromArgb(alpha, (int)(255 * r), (int)(255 * g), (int)(255 * b));
+            else if (hue2 < 4)
+            {
+                rgb[1] = x;
+                rgb[2] = chroma;
+            }
+            else if (hue2 < 5)
+            {
+                rgb[0] = x;
+                rgb[2] = chroma;
+            }
+            else if (hue2 < 6)
+            {
+                rgb[0] = chroma;
+                rgb[2] = x;
+            }
+            var m = MathF.Round(255f * (lumosity - (chroma / 2)));
+            return Color.FromArgb(alpha,
+                (int)(MathF.Round(255f * rgb[0]) + m),
+                (int)(MathF.Round(255f * rgb[1]) + m),
+                (int)(MathF.Round(255f * rgb[2]) + m));
         }
 
         public static Color FromKnownColor(KnownColor color) =>
